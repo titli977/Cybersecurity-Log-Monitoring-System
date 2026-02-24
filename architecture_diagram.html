@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cybersecurity Log Monitoring - Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#060b14; color:#c8e6ff; font-family:'Rajdhani',sans-serif; padding:24px; }
+  h1 { text-align:center; font-size:1.4rem; letter-spacing:6px; color:#00e5ff; text-transform:uppercase; margin-bottom:4px; }
+  .subtitle { text-align:center; font-size:0.75rem; color:#4a7a9b; letter-spacing:3px; margin-bottom:28px; font-family:'Share Tech Mono',monospace; }
+
+  .arch { display:flex; flex-direction:column; gap:0; }
+
+  .layer {
+    display:flex; align-items:stretch; gap:0;
+    border: 1px solid #1a3a5c; border-radius:6px;
+    margin-bottom: 0; overflow:hidden;
+    position:relative;
+  }
+
+  .layer + .arrow-row { display:flex; justify-content:center; align-items:center; height:36px; }
+
+  .layer-label {
+    writing-mode: vertical-rl; transform:rotate(180deg);
+    padding: 12px 10px; background:#0d1a2b;
+    font-size:0.65rem; letter-spacing:3px; text-transform:uppercase;
+    color:#4a7a9b; border-right:1px solid #1a3a5c;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    min-width:38px;
+  }
+
+  .layer-body { display:flex; flex-wrap:wrap; gap:10px; padding:14px 16px; flex:1; align-items:center; }
+
+  .box {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:10px 14px; border-radius:4px;
+    border: 1px solid; text-align:center; min-width:90px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor:default;
+  }
+  .box:hover { transform:translateY(-2px); }
+  .box-icon { font-size:1.4rem; margin-bottom:4px; }
+  .box-name { font-size:0.7rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+  .box-sub  { font-size:0.6rem; color:#4a7a9b; margin-top:2px; font-family:'Share Tech Mono',monospace; }
+
+  .c-source  { background:rgba(0,229,255,0.06);  border-color:rgba(0,229,255,0.3);  color:#00e5ff; }
+  .c-etl     { background:rgba(168,85,247,0.06); border-color:rgba(168,85,247,0.3); color:#a855f7; }
+  .c-spark   { background:rgba(255,107,53,0.06); border-color:rgba(255,107,53,0.3); color:#ff6b35; }
+  .c-snow    { background:rgba(14,165,233,0.06); border-color:rgba(14,165,233,0.3); color:#0ea5e9; }
+  .c-dw      { background:rgba(57,255,20,0.06);  border-color:rgba(57,255,20,0.3);  color:#39ff14; }
+  .c-sec     { background:rgba(255,45,85,0.06);  border-color:rgba(255,45,85,0.3);  color:#ff2d55; }
+  .c-vis     { background:rgba(255,179,0,0.06);  border-color:rgba(255,179,0,0.3);  color:#ffb300; }
+
+  .arrow-row { display:flex; justify-content:center; align-items:center; height:32px; }
+  .arrow { font-size:1.4rem; color:#1a3a5c; }
+
+  .flow-connector {
+    display:flex; justify-content:space-around; align-items:center;
+    padding:6px 60px; gap:4px;
+  }
+  .flow-line { flex:1; height:2px; background:linear-gradient(90deg, transparent, #1a3a5c, transparent); }
+  .flow-arrow { color:#4a7a9b; font-size:0.7rem; }
+
+  .legend { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; margin-top:20px; }
+  .legend-item { display:flex; align-items:center; gap:6px; font-size:0.7rem; color:#4a7a9b; }
+  .legend-dot { width:10px; height:10px; border-radius:50%; }
+</style>
+</head>
+<body>
+
+<h1>Cybersecurity Log Monitoring System</h1>
+<p class="subtitle">END-TO-END ARCHITECTURE · STAR SCHEMA + SNOWFLAKE + SPARK + RBAC</p>
+
+<div class="arch">
+
+  <!-- Layer 1: Data Sources -->
+  <div class="layer">
+    <div class="layer-label">📡 DATA SOURCES</div>
+    <div class="layer-body">
+      <div class="box c-source"><div class="box-icon">🔥</div><div class="box-name">Firewall</div><div class="box-sub">Syslog / CEF</div></div>
+      <div class="box c-source"><div class="box-icon">🕵️</div><div class="box-name">IDS/IPS</div><div class="box-sub">Snort/Suricata</div></div>
+      <div class="box c-source"><div class="box-icon">🌐</div><div class="box-name">WAF</div><div class="box-sub">ModSecurity</div></div>
+      <div class="box c-source"><div class="box-icon">📋</div><div class="box-name">OS Audit</div><div class="box-sub">auditd/WinEvent</div></div>
+      <div class="box c-source"><div class="box-icon">🖥️</div><div class="box-name">EDR</div><div class="box-sub">CrowdStrike</div></div>
+      <div class="box c-source"><div class="box-icon">📧</div><div class="box-name">Email Gateway</div><div class="box-sub">Anti-phishing</div></div>
+      <div class="box c-source"><div class="box-icon">☁️</div><div class="box-name">Cloud Logs</div><div class="box-sub">AWS/GCP/Azure</div></div>
+    </div>
+  </div>
+
+  <div class="arrow-row"><span class="arrow">↓ Kafka Streams / REST Ingest ↓</span></div>
+
+  <!-- Layer 2: ETL -->
+  <div class="layer">
+    <div class="layer-label">⚙️ ETL/ELT PIPELINE</div>
+    <div class="layer-body">
+      <div class="box c-etl"><div class="box-icon">📥</div><div class="box-name">Extractor</div><div class="box-sub">Python / Kafka</div></div>
+      <div style="color:#4a7a9b;font-size:1.2rem">→</div>
+      <div class="box c-etl"><div class="box-icon">🔍</div><div class="box-name">Validator</div><div class="box-sub">Schema check</div></div>
+      <div style="color:#4a7a9b;font-size:1.2rem">→</div>
+      <div class="box c-etl"><div class="box-icon">⚙️</div><div class="box-name">Transformer</div><div class="box-sub">Enrich + Normalize</div></div>
+      <div style="color:#4a7a9b;font-size:1.2rem">→</div>
+      <div class="box c-etl"><div class="box-icon">🗄️</div><div class="box-name">Staging</div><div class="box-sub">Raw JSON → STG</div></div>
+      <div style="color:#4a7a9b;font-size:1.2rem">→</div>
+      <div class="box c-etl"><div class="box-icon">📤</div><div class="box-name">Loader</div><div class="box-sub">Snowflake COPY</div></div>
+    </div>
+  </div>
+
+  <div class="arrow-row"><span class="arrow">↓ Parallel Spark Jobs ↓</span></div>
+
+  <!-- Layer 3: Spark -->
+  <div class="layer">
+    <div class="layer-label">⚡ APACHE SPARK</div>
+    <div class="layer-body">
+      <div class="box c-spark"><div class="box-icon">📦</div><div class="box-name">Batch Jobs</div><div class="box-sub">Daily aggregations</div></div>
+      <div class="box c-spark"><div class="box-icon">📡</div><div class="box-name">Streaming</div><div class="box-sub">Structured Streaming</div></div>
+      <div class="box c-spark"><div class="box-icon">🔎</div><div class="box-name">Anomaly Detect</div><div class="box-sub">Z-Score / ML</div></div>
+      <div class="box c-spark"><div class="box-icon">🪟</div><div class="box-name">Window Funcs</div><div class="box-sub">Sliding / Tumbling</div></div>
+      <div class="box c-spark"><div class="box-icon">📄</div><div class="box-name">Parquet Output</div><div class="box-sub">Partitioned by env+sev</div></div>
+    </div>
+  </div>
+
+  <div class="arrow-row"><span class="arrow">↓ Load into Snowflake DW ↓</span></div>
+
+  <!-- Layer 4: Snowflake -->
+  <div class="layer">
+    <div class="layer-label">❄️ SNOWFLAKE</div>
+    <div class="layer-body">
+      <div class="box c-snow"><div class="box-icon">⭐</div><div class="box-name">Star Schema</div><div class="box-sub">Fact + 5 Dims</div></div>
+      <div class="box c-snow"><div class="box-icon">🗂️</div><div class="box-name">Clustering</div><div class="box-sub">date+threat_key</div></div>
+      <div class="box c-snow"><div class="box-icon">⏱️</div><div class="box-name">Time Travel</div><div class="box-sub">90-day retention</div></div>
+      <div class="box c-snow"><div class="box-icon">📊</div><div class="box-name">Materialized Views</div><div class="box-sub">Daily summaries</div></div>
+      <div class="box c-snow"><div class="box-icon">🔮</div><div class="box-name">Semi-Structured</div><div class="box-sub">VARIANT / JSON</div></div>
+      <div class="box c-snow"><div class="box-icon">🔍</div><div class="box-name">Search Opt.</div><div class="box-sub">Point lookups</div></div>
+    </div>
+  </div>
+
+  <div class="arrow-row"><span class="arrow">↓ Security + Governance Layer ↓</span></div>
+
+  <!-- Layer 5: Security -->
+  <div class="layer">
+    <div class="layer-label">🔒 SECURITY & GOVERNANCE</div>
+    <div class="layer-body">
+      <div class="box c-sec"><div class="box-icon">👥</div><div class="box-name">RBAC</div><div class="box-sub">Admin/Analyst/ReadOnly</div></div>
+      <div class="box c-sec"><div class="box-icon">🎭</div><div class="box-name">Data Masking</div><div class="box-sub">IP / Username / Score</div></div>
+      <div class="box c-sec"><div class="box-icon">📏</div><div class="box-name">Row Policy</div><div class="box-sub">Env-based filtering</div></div>
+      <div class="box c-sec"><div class="box-icon">🔐</div><div class="box-name">Secure Views</div><div class="box-sub">Role-aware queries</div></div>
+      <div class="box c-sec"><div class="box-icon">📜</div><div class="box-name">Audit Trail</div><div class="box-sub">All access logged</div></div>
+    </div>
+  </div>
+
+  <div class="arrow-row"><span class="arrow">↓ Analytics & Visualization ↓</span></div>
+
+  <!-- Layer 6: Visualization -->
+  <div class="layer">
+    <div class="layer-label">📊 VISUALIZATION</div>
+    <div class="layer-body">
+      <div class="box c-vis"><div class="box-icon">🛡️</div><div class="box-name">SIEM Dashboard</div><div class="box-sub">Live monitoring</div></div>
+      <div class="box c-vis"><div class="box-icon">🔥</div><div class="box-name">Attack Heatmap</div><div class="box-sub">24h × 7d</div></div>
+      <div class="box c-vis"><div class="box-icon">📈</div><div class="box-name">Trend Analysis</div><div class="box-sub">Time-series</div></div>
+      <div class="box c-vis"><div class="box-icon">⚔️</div><div class="box-name">MITRE Coverage</div><div class="box-sub">ATT&CK mapping</div></div>
+      <div class="box c-vis"><div class="box-icon">⚠️</div><div class="box-name">Alert Feed</div><div class="box-sub">Real-time events</div></div>
+      <div class="box c-vis"><div class="box-icon">👤</div><div class="box-name">User Risk Score</div><div class="box-sub">Composite scoring</div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#00e5ff"></div>Data Sources</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#a855f7"></div>ETL Pipeline (Python)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ff6b35"></div>Apache Spark</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div>Snowflake DW</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ff2d55"></div>Security/Governance</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ffb300"></div>Visualization</div>
+</div>
+
+</body>
+</html>
